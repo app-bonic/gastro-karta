@@ -82,50 +82,38 @@
   .popup-card .btn-rec { background: #e94560; }
   .popup-card .btn-nav { background: #1a73e8; }
 
-  #mobileChips { display: none; }
 
   @media (max-width: 700px) {
     #app { flex-direction: column; height: 100dvh; }
 
-    /* karta zauzima sve osim donje trake */
-    #map { order: 1; height: auto; flex: 1; }
+    /* gore: chipovi zemalja + trazilica, ispod karta */
+    #sidebar { width: 100%; min-width: 0; order: 1; flex: none; height: auto; overflow: visible; }
+    #map { order: 2; height: auto; flex: 1; }
 
-    /* donja traka = bottom sheet: skupljeno samo trazilica, klik je digne do pola */
-    #sidebar {
-      width: 100%; min-width: 0; order: 2; flex: none;
-      height: 96px; overflow: hidden;
-      transition: height .28s ease;
-    }
-    #app.expanded #sidebar { height: 55%; }
-
-    #sidebar header { position: static; padding: 8px 12px; }
-    #list { overflow-y: auto; min-height: 0; }
-
-    /* veliki logo nestaje — trazilica JE forma, logo u pozadini */
+    #sidebar header { position: static; padding: 8px 10px; }
     .logo-badge { display: none; }
+    #sidebar .sub { display: none; }
+
+    /* chipovi u jednom redu, horizontalno skrolabilni */
+    #countries { flex-wrap: nowrap; overflow-x: auto; margin-top: 0; padding-bottom: 3px; }
+    #countries .chip { flex: none; }
+
+    /* trazilica malo sira/veca, logo u pozadini */
     #search {
-      margin-top: 0;
+      margin-top: 8px; padding: 11px 14px; font-size: 15px;
       background-color: #fff; color: #111; font-weight: 600;
-      background-image: linear-gradient(rgba(255,255,255,.82), rgba(255,255,255,.82)), url('logo.png');
+      background-image: linear-gradient(rgba(255,255,255,.85), rgba(255,255,255,.85)), url('logo.png');
       background-repeat: no-repeat; background-position: center;
-      background-size: cover, auto 30px;
+      background-size: cover, auto 28px;
       border: 1px solid #ccc;
     }
     #search::placeholder { color: #555; }
-    #sidebar .sub { margin: 6px 2px 0; }
 
-    /* chipovi zemalja: okomito na karti, ispod "Di sam ja?" */
-    header #countries { display: none; }
-    #mobileChips {
-      display: block; position: absolute; top: 58px; left: 10px; z-index: 650;
-      max-height: calc(100% - 75px); overflow-y: auto;
-    }
-    #mobileChips #countries { display: flex; flex-direction: column; gap: 6px; margin: 0; }
-    #mobileChips .chip {
-      background: rgba(255,255,255,.92); color: #333; border: 1px solid #ddd;
-      box-shadow: 0 1px 4px rgba(0,0,0,.25); width: max-content;
-    }
-    #mobileChips .chip.active { background: #e94560; border-color: #e94560; color: #fff; }
+    /* popis: na pocetku skriven; dok se tipka zauzme cijeli ekran umjesto karte */
+    #list { display: none; }
+    #app.searching #sidebar { height: 100%; }
+    #app.searching #list { display: block; flex: 1; overflow-y: auto; min-height: 0; }
+    #app.searching #map { display: none; }
   }
 </style>
 </head>
@@ -259,7 +247,7 @@
         </div>`;
       el.onclick = () => {
         if (r.lat && markers[r.url]) {
-          collapseSheet();
+          hideSearchList();
           map.flyTo([r.lat, r.lng], 14, { duration: 0.8 });
           markers[r.url].openPopup();
           document.querySelectorAll('.item.active').forEach(x => x.classList.remove('active'));
@@ -297,37 +285,27 @@
     countryBox.appendChild(chip);
   });
 
-  // Mobitel: chipovi zemalja sele na kartu (okomito, ispod "Di sam ja?"); desktop ostaje isti
-  const mobileChips = document.createElement('div');
-  mobileChips.id = 'mobileChips';
-  document.getElementById('map').appendChild(mobileChips);
-  L.DomEvent.disableClickPropagation(mobileChips);
-  L.DomEvent.disableScrollPropagation(mobileChips);
+  // Mobitel: popis je skriven; tipkanje u trazilicu ga otvori preko cijelog ekrana, izbor ga zatvori
   const mq = window.matchMedia('(max-width: 700px)');
   const searchEl = document.getElementById('search');
-  function placeChips() {
-    if (mq.matches) mobileChips.appendChild(countryBox);
-    else searchEl.parentNode.insertBefore(countryBox, searchEl);
-  }
-  mq.addEventListener('change', placeChips);
-  placeChips();
-
-  // Mobitel: bottom sheet — fokus na trazilicu dize popis, izbor restorana ili klik na kartu ga spusti
   const appEl = document.getElementById('app');
-  function expandSheet() { if (mq.matches) appEl.classList.add('expanded'); }
-  function collapseSheet() {
+  function hideSearchList() {
     if (!mq.matches) return;
-    appEl.classList.remove('expanded');
+    appEl.classList.remove('searching');
     searchEl.blur();
-    setTimeout(() => map.invalidateSize(), 300);
+    setTimeout(() => map.invalidateSize(), 50);
   }
-  searchEl.addEventListener('focus', () => { expandSheet(); setTimeout(() => map.invalidateSize(), 300); });
-  map.on('click', collapseSheet);
+  function syncSearchList() {
+    if (!mq.matches) return;
+    if (searchEl.value.trim()) appEl.classList.add('searching');
+    else { appEl.classList.remove('searching'); setTimeout(() => map.invalidateSize(), 50); }
+  }
+  searchEl.addEventListener('focus', syncSearchList);
 
   renderMarkers();
   renderList('');
   updateCounter();
-  document.getElementById('search').addEventListener('input', e => renderList(e.target.value));
+  document.getElementById('search').addEventListener('input', e => { renderList(e.target.value); syncSearchList(); });
 </script>
 </body>
 </html>
