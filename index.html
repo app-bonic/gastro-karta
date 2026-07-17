@@ -23,11 +23,22 @@
   }
   .logo-badge img { max-width: 100%; height: 44px; object-fit: contain; }
   #sidebar .sub { font-size: 12px; color: #999; margin-top: 4px; }
+  #searchWrap { position: relative; margin-top: 10px; }
   #search {
-    width: 100%; margin-top: 10px; padding: 8px 12px; border-radius: 8px;
+    width: 100%; padding: 8px 12px; border-radius: 8px;
     border: 1px solid #333; background: #22223a; color: #eee; font-size: 14px; outline: none;
   }
   #search:focus { border-color: #e94560; }
+  #listToggle { display: none; }
+
+  #footer {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 9px 14px; background: #16162a; border-top: 1px solid #24243c;
+  }
+  #footer img { height: 26px; background: #fff; border-radius: 6px; padding: 3px 8px; display: block; }
+  #footer .socials { display: flex; gap: 16px; align-items: center; }
+  #footer .socials svg { width: 22px; height: 22px; opacity: .8; display: block; }
+  #footer .socials a:hover svg { opacity: 1; }
   #countries { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
   .chip {
     font-size: 11.5px; padding: 4px 10px; border-radius: 20px; cursor: pointer;
@@ -94,13 +105,18 @@
     .logo-badge { display: none; }
     #sidebar .sub { display: none; }
 
-    /* chipovi u jednom redu, horizontalno skrolabilni */
-    #countries { flex-wrap: nowrap; overflow-x: auto; margin-top: 0; padding-bottom: 3px; }
-    #countries .chip { flex: none; }
+    /* veci chipovi u DVA reda, horizontalno skrolabilni */
+    #countries {
+      display: grid; grid-auto-flow: column; grid-template-rows: repeat(2, auto);
+      justify-content: start; gap: 7px;
+      overflow-x: auto; margin-top: 0; padding-bottom: 3px;
+    }
+    #countries .chip { font-size: 13.5px; padding: 8px 15px; width: max-content; }
 
-    /* trazilica malo sira/veca, logo u pozadini */
+    /* trazilica sira/veca, logo u pozadini, strelica za popis desno */
+    #searchWrap { margin-top: 8px; }
     #search {
-      margin-top: 8px; padding: 11px 14px; font-size: 15px;
+      padding: 11px 40px 11px 14px; font-size: 15px;
       background-color: #fff; color: #111; font-weight: 600;
       background-image: linear-gradient(rgba(255,255,255,.85), rgba(255,255,255,.85)), url('logo.png');
       background-repeat: no-repeat; background-position: center;
@@ -108,12 +124,21 @@
       border: 1px solid #ccc;
     }
     #search::placeholder { color: #555; }
+    #listToggle {
+      display: block; position: absolute; right: 4px; top: 50%; transform: translateY(-50%);
+      border: none; background: transparent; font-size: 21px; color: #333;
+      padding: 4px 10px; cursor: pointer; line-height: 1;
+    }
 
-    /* popis: na pocetku skriven; dok se tipka zauzme cijeli ekran umjesto karte */
+    /* popis: na pocetku skriven; klik u trazilicu ga otvori preko cijelog ekrana */
     #list { display: none; }
-    #app.searching #sidebar { height: 100%; }
+    #app.searching #sidebar { height: auto; flex: 1; min-height: 0; display: flex; flex-direction: column; }
     #app.searching #list { display: block; flex: 1; overflow-y: auto; min-height: 0; }
     #app.searching #map { display: none; }
+
+    /* footer na dnu ekrana */
+    #footer { order: 3; flex: none; padding: 8px 12px; }
+    #footer img { height: 24px; }
   }
 </style>
 </head>
@@ -126,9 +151,20 @@
       </a>
       <div class="sub" id="counter">Učitavam…</div>
       <div id="countries"></div>
-      <input id="search" type="text" placeholder="Traži restoran…">
+      <div id="searchWrap">
+        <input id="search" type="text" placeholder="Traži restoran…">
+        <button id="listToggle" title="Otvori/zatvori popis">▾</button>
+      </div>
     </header>
     <div id="list"></div>
+    <div id="footer">
+      <a href="https://gastrotrazilica.com/" target="_blank"><img src="logo.png" alt="Gastro Tražilica"></a>
+      <div class="socials">
+        <a href="https://www.youtube.com/@gastrotrazilica" target="_blank" title="YouTube"><svg viewBox="0 0 24 24"><path fill="#fff" d="M23.5 6.2s-.2-1.6-.9-2.3c-.9-.9-1.9-.9-2.4-1C16.9 2.5 12 2.5 12 2.5s-4.9 0-8.2.4c-.5.1-1.5.1-2.4 1-.7.7-.9 2.3-.9 2.3S0 8.1 0 10v1.9c0 1.9.2 3.8.2 3.8s.2 1.6.9 2.3c.9.9 2 .9 2.5 1 1.8.2 7.6.4 8.4.4 0 0 4.9 0 8.2-.4.5-.1 1.5-.1 2.4-1 .7-.7.9-2.3.9-2.3s.2-1.9.2-3.8V10c0-1.9-.2-3.8-.2-3.8zM9.5 14.6V7.9l6.5 3.4-6.5 3.3z"/></svg></a>
+        <a href="https://www.facebook.com/gastrotrazilica/" target="_blank" title="Facebook"><svg viewBox="0 0 24 24"><path fill="#fff" d="M22 12a10 10 0 1 0-11.6 9.9v-7H7.9V12h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.5h-1.3c-1.2 0-1.6.8-1.6 1.6V12h2.8l-.4 2.9h-2.4v7A10 10 0 0 0 22 12z"/></svg></a>
+        <a href="https://www.instagram.com/gastrotrazilica/" target="_blank" title="Instagram"><svg viewBox="0 0 24 24"><path fill="#fff" d="M12 2.2c3.2 0 3.6 0 4.8.1 1.2.1 1.9.2 2.3.4.6.2 1 .5 1.4.9.4.4.7.8.9 1.4.2.4.4 1.1.4 2.3.1 1.2.1 1.6.1 4.8s0 3.6-.1 4.8c-.1 1.2-.2 1.9-.4 2.3-.2.6-.5 1-.9 1.4-.4.4-.8.7-1.4.9-.4.2-1.1.4-2.3.4-1.2.1-1.6.1-4.8.1s-3.6 0-4.8-.1c-1.2-.1-1.9-.2-2.3-.4-.6-.2-1-.5-1.4-.9-.4-.4-.7-.8-.9-1.4-.2-.4-.4-1.1-.4-2.3-.1-1.2-.1-1.6-.1-4.8s0-3.6.1-4.8c.1-1.2.2-1.9.4-2.3.2-.6.5-1 .9-1.4.4-.4.8-.7 1.4-.9.4-.2 1.1-.4 2.3-.4 1.2-.1 1.6-.1 4.8-.1zm0 4.9a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0 8.2a3.2 3.2 0 1 1 0-6.4 3.2 3.2 0 0 1 0 6.4zm6.4-8.4a1.2 1.2 0 1 1-2.4 0 1.2 1.2 0 0 1 2.4 0z"/></svg></a>
+      </div>
+    </div>
   </div>
   <div id="map"></div>
 </div>
@@ -189,7 +225,8 @@
       return btn;
     }
   });
-  map.addControl(new LocateControl());
+  const locateCtl = new LocateControl();
+  map.addControl(locateCtl);
 
   const icon = L.divIcon({
     className: 'gt-pin',
@@ -224,7 +261,8 @@
     markerLayer.clearLayers();
     const vis = visible().filter(r => r.lat && r.lng);
     vis.forEach(r => {
-      markers[r.url] = L.marker([r.lat, r.lng], { icon }).addTo(markerLayer).bindPopup(popupHtml(r));
+      markers[r.url] = L.marker([r.lat, r.lng], { icon }).addTo(markerLayer)
+        .bindPopup(popupHtml(r), { maxWidth: 260, autoPan: true, autoPanPadding: [14, 16], keepInView: true });
     });
     if (vis.length) map.fitBounds(vis.map(r => [r.lat, r.lng]), { padding: [40, 40] });
   }
@@ -248,8 +286,11 @@
       el.onclick = () => {
         if (r.lat && markers[r.url]) {
           hideSearchList();
-          map.flyTo([r.lat, r.lng], 14, { duration: 0.8 });
-          markers[r.url].openPopup();
+          // pricekaj da se karta opet prikaze pa doleti; popup tek na kraju da autopan tocno stane u ekran
+          setTimeout(() => {
+            map.flyTo([r.lat, r.lng], 14, { duration: 0.8 });
+            map.once('moveend', () => markers[r.url].openPopup());
+          }, 80);
           document.querySelectorAll('.item.active').forEach(x => x.classList.remove('active'));
           el.classList.add('active');
         } else {
@@ -285,27 +326,47 @@
     countryBox.appendChild(chip);
   });
 
-  // Mobitel: popis je skriven; tipkanje u trazilicu ga otvori preko cijelog ekrana, izbor ga zatvori
+  // Mobitel: popis je skriven; klik u trazilicu ga odmah otvori preko cijelog ekrana,
+  // izbor restorana ili strelica ▾/▴ ga zatvori
   const mq = window.matchMedia('(max-width: 700px)');
   const searchEl = document.getElementById('search');
   const appEl = document.getElementById('app');
+  const toggleEl = document.getElementById('listToggle');
+  function openSearchList() {
+    if (!mq.matches) return;
+    appEl.classList.add('searching');
+    toggleEl.textContent = '▴';
+  }
   function hideSearchList() {
     if (!mq.matches) return;
     appEl.classList.remove('searching');
+    toggleEl.textContent = '▾';
     searchEl.blur();
     setTimeout(() => map.invalidateSize(), 50);
   }
-  function syncSearchList() {
-    if (!mq.matches) return;
-    if (searchEl.value.trim()) appEl.classList.add('searching');
-    else { appEl.classList.remove('searching'); setTimeout(() => map.invalidateSize(), 50); }
+  searchEl.addEventListener('focus', openSearchList);
+  searchEl.addEventListener('click', openSearchList);
+  toggleEl.addEventListener('click', () => {
+    if (appEl.classList.contains('searching')) hideSearchList();
+    else { openSearchList(); searchEl.focus(); }
+  });
+
+  // Footer: na desktopu dno sidebara, na mobitelu dno ekrana
+  const footerEl = document.getElementById('footer');
+  function placeFooter() {
+    if (mq.matches) appEl.appendChild(footerEl);
+    else document.getElementById('sidebar').appendChild(footerEl);
   }
-  searchEl.addEventListener('focus', syncSearchList);
+  // "Di sam ja?": na mobitelu dolje desno, na desktopu gore lijevo
+  function placeLocate() { locateCtl.setPosition(mq.matches ? 'bottomright' : 'topleft'); }
+  mq.addEventListener('change', () => { placeFooter(); placeLocate(); });
+  placeFooter();
+  placeLocate();
 
   renderMarkers();
   renderList('');
   updateCounter();
-  document.getElementById('search').addEventListener('input', e => { renderList(e.target.value); syncSearchList(); });
+  document.getElementById('search').addEventListener('input', e => renderList(e.target.value));
 </script>
 </body>
 </html>
