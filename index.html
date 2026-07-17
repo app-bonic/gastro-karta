@@ -39,6 +39,22 @@
   #footer .socials { display: flex; gap: 16px; align-items: center; }
   #footer .socials svg { width: 22px; height: 22px; opacity: .8; display: block; }
   #footer .socials a:hover svg { opacity: 1; }
+
+  /* splash: logo lijepo doleti u sredinu pri pokretanju */
+  #splash {
+    position: fixed; inset: 0; z-index: 5000; background: #1a1a2e;
+    display: flex; align-items: center; justify-content: center;
+    transition: opacity .5s ease;
+  }
+  #splash.hide { opacity: 0; pointer-events: none; }
+  #splash img {
+    width: min(70%, 300px); background: #fff; border-radius: 16px; padding: 18px 26px;
+    animation: splashIn .7s ease both;
+  }
+  @keyframes splashIn {
+    from { opacity: 0; transform: scale(.72) translateY(14px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+  }
   #countries { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
   .chip {
     font-size: 11.5px; padding: 4px 10px; border-radius: 20px; cursor: pointer;
@@ -105,13 +121,13 @@
     .logo-badge { display: none; }
     #sidebar .sub { display: none; }
 
-    /* veci chipovi u DVA reda, horizontalno skrolabilni */
+    /* chipovi u TRI reda, horizontalno skrolabilni */
     #countries {
-      display: grid; grid-auto-flow: column; grid-template-rows: repeat(2, auto);
-      justify-content: start; gap: 7px;
+      display: grid; grid-auto-flow: column; grid-template-rows: repeat(3, auto);
+      justify-content: start; gap: 5px;
       overflow-x: auto; margin-top: 0; padding-bottom: 3px;
     }
-    #countries .chip { font-size: 13.5px; padding: 8px 15px; width: max-content; }
+    #countries .chip { font-size: 11.5px; padding: 5px 11px; width: max-content; }
 
     /* trazilica sira/veca, logo u pozadini, strelica za popis desno */
     #searchWrap { margin-top: 8px; }
@@ -136,9 +152,11 @@
     #app.searching #list { display: block; flex: 1; overflow-y: auto; min-height: 0; }
     #app.searching #map { display: none; }
 
-    /* footer na dnu ekrana */
-    #footer { order: 3; flex: none; padding: 8px 12px; }
-    #footer img { height: 24px; }
+    /* footer na dnu ekrana — mrvicu veci */
+    #footer { order: 3; flex: none; padding: 13px 16px; }
+    #footer img { height: 32px; }
+    #footer .socials { gap: 20px; }
+    #footer .socials svg { width: 27px; height: 27px; }
   }
 </style>
 </head>
@@ -168,6 +186,7 @@
   </div>
   <div id="map"></div>
 </div>
+<div id="splash"><img src="logo.png" alt="Gastro Tražilica"></div>
 
 <script src="data.js"></script>
 <script>
@@ -264,7 +283,14 @@
       markers[r.url] = L.marker([r.lat, r.lng], { icon }).addTo(markerLayer)
         .bindPopup(popupHtml(r), { maxWidth: 260, autoPan: true, autoPanPadding: [14, 16], keepInView: true });
     });
-    if (vis.length) map.fitBounds(vis.map(r => [r.lat, r.lng]), { padding: [40, 40] });
+    if (!vis.length) return;
+    // "Sve" na mobitelu: fiksni pogled na regiju s pinovima (ne fitBounds do Svicarske);
+    // pojedinacna zemlja: zumiraj na nju kao i prije
+    if (activeCountry === 'Sve' && window.matchMedia('(max-width: 700px)').matches) {
+      map.setView([44.4, 17.6], 6);
+    } else {
+      map.fitBounds(vis.map(r => [r.lat, r.lng]), { padding: [40, 40] });
+    }
   }
 
   const list = document.getElementById('list');
@@ -367,6 +393,13 @@
   renderList('');
   updateCounter();
   document.getElementById('search').addEventListener('input', e => renderList(e.target.value));
+
+  // Splash nestaje nakon sto se logo "dovede" u sredinu
+  const splashEl = document.getElementById('splash');
+  setTimeout(() => {
+    splashEl.classList.add('hide');
+    setTimeout(() => splashEl.remove(), 600);
+  }, 1100);
 </script>
 </body>
 </html>
