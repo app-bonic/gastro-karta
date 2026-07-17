@@ -86,10 +86,18 @@
 
   @media (max-width: 700px) {
     #app { flex-direction: column; height: 100dvh; }
-    #sidebar { width: 100%; min-width: 0; height: 45%; order: 2; overflow: hidden; }
-    #map { height: 55%; }
 
-    /* popis skrola sam za sebe — nista vise nije odrezano */
+    /* karta zauzima sve osim donje trake */
+    #map { order: 1; height: auto; flex: 1; }
+
+    /* donja traka = bottom sheet: skupljeno samo trazilica, klik je digne do pola */
+    #sidebar {
+      width: 100%; min-width: 0; order: 2; flex: none;
+      height: 96px; overflow: hidden;
+      transition: height .28s ease;
+    }
+    #app.expanded #sidebar { height: 55%; }
+
     #sidebar header { position: static; padding: 8px 12px; }
     #list { overflow-y: auto; min-height: 0; }
 
@@ -109,7 +117,7 @@
     /* chipovi zemalja: okomito na karti, ispod "Di sam ja?" */
     header #countries { display: none; }
     #mobileChips {
-      display: block; position: absolute; top: 58px; left: 10px; z-index: 1000;
+      display: block; position: absolute; top: 58px; left: 10px; z-index: 650;
       max-height: calc(100% - 75px); overflow-y: auto;
     }
     #mobileChips #countries { display: flex; flex-direction: column; gap: 6px; margin: 0; }
@@ -251,6 +259,7 @@
         </div>`;
       el.onclick = () => {
         if (r.lat && markers[r.url]) {
+          collapseSheet();
           map.flyTo([r.lat, r.lng], 14, { duration: 0.8 });
           markers[r.url].openPopup();
           document.querySelectorAll('.item.active').forEach(x => x.classList.remove('active'));
@@ -302,6 +311,18 @@
   }
   mq.addEventListener('change', placeChips);
   placeChips();
+
+  // Mobitel: bottom sheet — fokus na trazilicu dize popis, izbor restorana ili klik na kartu ga spusti
+  const appEl = document.getElementById('app');
+  function expandSheet() { if (mq.matches) appEl.classList.add('expanded'); }
+  function collapseSheet() {
+    if (!mq.matches) return;
+    appEl.classList.remove('expanded');
+    searchEl.blur();
+    setTimeout(() => map.invalidateSize(), 300);
+  }
+  searchEl.addEventListener('focus', () => { expandSheet(); setTimeout(() => map.invalidateSize(), 300); });
+  map.on('click', collapseSheet);
 
   renderMarkers();
   renderList('');
