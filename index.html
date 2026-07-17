@@ -109,8 +109,8 @@
     /* chipovi zemalja: okomito na karti, ispod "Di sam ja?" */
     header #countries { display: none; }
     #mobileChips {
-      display: block; position: absolute; top: 130px; left: 10px; z-index: 1000;
-      max-height: calc(100% - 145px); overflow-y: auto;
+      display: block; position: absolute; top: 58px; left: 10px; z-index: 1000;
+      max-height: calc(100% - 75px); overflow-y: auto;
     }
     #mobileChips #countries { display: flex; flex-direction: column; gap: 6px; margin: 0; }
     #mobileChips .chip {
@@ -139,7 +139,8 @@
 
 <script src="data.js"></script>
 <script>
-  const map = L.map('map').setView([45.1, 16.4], 7);
+  const map = L.map('map', { zoomControl: false }).setView([45.1, 16.4], 7);
+  L.control.zoom({ position: 'topright' }).addTo(map);
 
   // Dvije podloge: svijetla moderna (odzumirano) i detaljna OSM (zumirano)
   const DETAIL_ZOOM = 12;
