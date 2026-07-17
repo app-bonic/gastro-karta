@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="hr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gastro Tražilica — karta recenzija</title>
+<link rel="icon" href="pin-logo.png">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; font-family: 'Segoe UI', system-ui, sans-serif; }
+  #app { display: flex; height: 100%; }
+
+  #sidebar {
+    width: 340px; min-width: 340px; height: 100%; overflow-y: auto;
+    background: #1a1a2e; color: #eee; display: flex; flex-direction: column;
+  }
+  #sidebar header { padding: 14px 16px 10px; background: #16162a; position: sticky; top: 0; z-index: 5; }
+  .logo-badge {
+    display: block; background: #fff; border-radius: 10px; padding: 8px 14px;
+    text-align: center; line-height: 0;
+  }
+  .logo-badge img { max-width: 100%; height: 44px; object-fit: contain; }
+  #sidebar .sub { font-size: 12px; color: #999; margin-top: 4px; }
+  #search {
+    width: 100%; margin-top: 10px; padding: 8px 12px; border-radius: 8px;
+    border: 1px solid #333; background: #22223a; color: #eee; font-size: 14px; outline: none;
+  }
+  #search:focus { border-color: #e94560; }
+  #countries { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 10px; }
+  .chip {
+    font-size: 11.5px; padding: 4px 10px; border-radius: 20px; cursor: pointer;
+    background: #22223a; border: 1px solid #333; color: #ccc; user-select: none;
+  }
+  .chip:hover { border-color: #e94560; }
+  .chip.active { background: #e94560; border-color: #e94560; color: #fff; font-weight: 600; }
+  #list { flex: 1; }
+  .item {
+    display: flex; gap: 10px; padding: 10px 14px; cursor: pointer;
+    border-bottom: 1px solid #24243c; align-items: center;
+  }
+  .item:hover, .item.active { background: #2a2a4a; }
+  .item img { width: 56px; height: 56px; object-fit: cover; border-radius: 8px; background: #333; }
+  .item .t { font-size: 14px; font-weight: 600; line-height: 1.25; }
+  .item .m { font-size: 11px; color: #e9a545; margin-top: 2px; }
+  .item .d { font-size: 11.5px; color: #9a9ab5; margin-top: 3px;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+  #map { flex: 1; height: 100%; }
+
+  .locate-btn {
+    display: block; background: #fff; color: #333 !important; font-size: 13px;
+    font-weight: 600; padding: 6px 10px; border-radius: 4px; text-decoration: none;
+    box-shadow: 0 1px 5px rgba(0,0,0,.4); white-space: nowrap; cursor: pointer;
+  }
+  .locate-btn:hover { background: #f4f4f4; }
+
+  .gt-pin { filter: drop-shadow(0 2px 4px rgba(0,0,0,.45)); }
+  .gt-pin .bubble {
+    width: 34px; height: 34px; background: #fff; border: 3px solid #e94560;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center; overflow: hidden;
+  }
+  .gt-pin .bubble img { width: 24px; height: 24px; object-fit: contain; }
+  .gt-pin .tail {
+    width: 0; height: 0; margin: -2px auto 0;
+    border-left: 7px solid transparent; border-right: 7px solid transparent;
+    border-top: 10px solid #e94560;
+  }
+
+  .popup-card { width: 240px; }
+  .popup-card img.hero { width: 100%; height: 120px; object-fit: cover; border-radius: 6px; }
+  .popup-card h3 { font-size: 15px; margin: 6px 0 4px; }
+  .popup-card .rating { font-size: 12.5px; font-weight: 600; margin-bottom: 3px; }
+  .popup-card .addr { font-size: 11.5px; color: #666; margin-bottom: 5px; }
+  .popup-card p { font-size: 12px; color: #444; margin-bottom: 8px; }
+  .popup-card .btns { display: flex; gap: 6px; }
+  .popup-card .btns a {
+    flex: 1; text-align: center; font-size: 12.5px; color: #fff;
+    padding: 6px 4px; border-radius: 6px; text-decoration: none; font-weight: 600;
+  }
+  .popup-card .btn-rec { background: #e94560; }
+  .popup-card .btn-nav { background: #1a73e8; }
+
+  @media (max-width: 700px) {
+    #app { flex-direction: column; }
+    #sidebar { width: 100%; min-width: 0; height: 45%; order: 2; }
+    #map { height: 55%; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="sidebar">
+    <header>
+      <a class="logo-badge" href="https://gastrotrazilica.com/" target="_blank" title="gastrotrazilica.com">
+        <img src="logo.png" alt="Gastro Tražilica">
+      </a>
+      <div class="sub" id="counter">Učitavam…</div>
+      <div id="countries"></div>
+      <input id="search" type="text" placeholder="Traži restoran…">
+    </header>
+    <div id="list"></div>
+  </div>
+  <div id="map"></div>
+</div>
+
+<script src="data.js"></script>
+<script>
+  const map = L.map('map').setView([45.1, 16.4], 7);
+
+  // Dvije podloge: svijetla moderna (odzumirano) i detaljna OSM (zumirano)
+  const DETAIL_ZOOM = 12;
+  const lightTiles = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    maxZoom: 19, subdomains: 'abcd',
+    attribution: '&copy; OpenStreetMap &copy; CARTO | podaci: gastrotrazilica.com'
+  });
+  const detailTiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap | podaci: gastrotrazilica.com'
+  });
+  lightTiles.addTo(map);
+  map.on('zoomend', () => {
+    const z = map.getZoom();
+    if (z >= DETAIL_ZOOM && !map.hasLayer(detailTiles)) {
+      map.addLayer(detailTiles); map.removeLayer(lightTiles);
+    } else if (z < DETAIL_ZOOM && !map.hasLayer(lightTiles)) {
+      map.addLayer(lightTiles); map.removeLayer(detailTiles);
+    }
+  });
+
+  // Gumb "Di sam ja?" — geolokacija (radi na localhostu i HTTPS-u)
+  let myMarker = null, myCircle = null;
+  const LocateControl = L.Control.extend({
+    options: { position: 'topleft' },
+    onAdd() {
+      const btn = L.DomUtil.create('a', 'locate-btn');
+      btn.href = '#';
+      btn.innerHTML = '📍 Di sam ja?';
+      btn.title = 'Pokaži moju lokaciju';
+      L.DomEvent.on(btn, 'click', e => {
+        L.DomEvent.stop(e);
+        if (!navigator.geolocation) { alert('Preglednik ne podržava geolokaciju.'); return; }
+        btn.innerHTML = '⏳ Tražim…';
+        navigator.geolocation.getCurrentPosition(pos => {
+          const { latitude: lat, longitude: lng, accuracy } = pos.coords;
+          if (myMarker) { map.removeLayer(myMarker); map.removeLayer(myCircle); }
+          myMarker = L.circleMarker([lat, lng], {
+            radius: 8, color: '#fff', weight: 3, fillColor: '#1a73e8', fillOpacity: 1
+          }).addTo(map).bindPopup('Tu si ti 👋');
+          myCircle = L.circle([lat, lng], { radius: accuracy, color: '#1a73e8', weight: 1, fillOpacity: 0.12 }).addTo(map);
+          map.flyTo([lat, lng], 13, { duration: 1 });
+          btn.innerHTML = '📍 Di sam ja?';
+        }, err => {
+          btn.innerHTML = '📍 Di sam ja?';
+          const poruke = { 1: 'Odbio si pristup lokaciji — dozvoli je u pregledniku.', 2: 'Lokacija nije dostupna.', 3: 'Isteklo vrijeme za dohvat lokacije.' };
+          alert(poruke[err.code] || 'Ne mogu dohvatiti lokaciju.');
+        }, { enableHighAccuracy: true, timeout: 10000 });
+      });
+      return btn;
+    }
+  });
+  map.addControl(new LocateControl());
+
+  const icon = L.divIcon({
+    className: 'gt-pin',
+    html: '<div class="bubble"><img src="pin-logo.png" alt=""></div><div class="tail"></div>',
+    iconSize: [34, 44], iconAnchor: [17, 44], popupAnchor: [0, -44]
+  });
+
+  function popupHtml(r) {
+    const nav = `https://www.google.com/maps/dir/?api=1&destination=${r.lat},${r.lng}&travelmode=driving`;
+    return `<div class="popup-card">
+      ${r.img ? `<img class="hero" src="${r.img}" alt="">` : ''}
+      <h3>${r.title}</h3>
+      ${r.rating ? `<div class="rating">⭐ ${(+r.rating).toFixed(1)}${r.reviews ? ` · ${r.reviews} recenzija na Googleu` : ''}</div>` : ''}
+      ${r.addr ? `<div class="addr">📍 ${r.addr}</div>` : ''}
+      <p>${(r.desc || '').slice(0, 150)}…</p>
+      <div class="btns">
+        <a class="btn-rec" href="${r.url}" target="_blank">Otvori recenziju</a>
+        <a class="btn-nav" href="${nav}" target="_blank">🧭 Uputi me</a>
+      </div>
+    </div>`;
+  }
+
+  const markers = {};
+  let markerLayer = L.layerGroup().addTo(map);
+  let activeCountry = 'Sve';
+
+  function visible() {
+    return RESTORANI.filter(r => activeCountry === 'Sve' || r.drzava === activeCountry);
+  }
+
+  function renderMarkers() {
+    markerLayer.clearLayers();
+    const vis = visible().filter(r => r.lat && r.lng);
+    vis.forEach(r => {
+      markers[r.url] = L.marker([r.lat, r.lng], { icon }).addTo(markerLayer).bindPopup(popupHtml(r));
+    });
+    if (vis.length) map.fitBounds(vis.map(r => [r.lat, r.lng]), { padding: [40, 40] });
+  }
+
+  const list = document.getElementById('list');
+  function renderList(filter) {
+    list.innerHTML = '';
+    const f = (filter || '').toLowerCase();
+    const sorted = [...visible()].sort((a, b) => a.title.localeCompare(b.title, 'hr'));
+    sorted.forEach(r => {
+      if (f && !r.title.toLowerCase().includes(f) && !(r.desc || '').toLowerCase().includes(f)) return;
+      const el = document.createElement('div');
+      el.className = 'item';
+      el.innerHTML = `
+        ${r.img ? `<img src="${r.img}" loading="lazy" alt="">` : '<img alt="">'}
+        <div>
+          <div class="t">${r.title}</div>
+          <div class="m">${r.rating ? `⭐ ${(+r.rating).toFixed(1)} · ` : ''}${r.drzava}</div>
+          <div class="d">${r.desc || ''}</div>
+        </div>`;
+      el.onclick = () => {
+        if (r.lat && markers[r.url]) {
+          map.flyTo([r.lat, r.lng], 14, { duration: 0.8 });
+          markers[r.url].openPopup();
+          document.querySelectorAll('.item.active').forEach(x => x.classList.remove('active'));
+          el.classList.add('active');
+        } else {
+          window.open(r.url, '_blank');
+        }
+      };
+      list.appendChild(el);
+    });
+  }
+
+  function updateCounter() {
+    const vis = visible();
+    const geo = vis.filter(r => r.lat).length;
+    document.getElementById('counter').textContent =
+      `${vis.length} recenzija · ${geo} na karti` + (vis.length - geo ? ` · ${vis.length - geo} bez lokacije` : '');
+  }
+
+  const countryBox = document.getElementById('countries');
+  const countries = ['Sve', ...[...new Set(RESTORANI.map(r => r.drzava))]];
+  countries.forEach(c => {
+    const chip = document.createElement('span');
+    chip.className = 'chip' + (c === 'Sve' ? ' active' : '');
+    const n = c === 'Sve' ? RESTORANI.length : RESTORANI.filter(r => r.drzava === c).length;
+    chip.textContent = `${c} (${n})`;
+    chip.onclick = () => {
+      activeCountry = c;
+      document.querySelectorAll('.chip').forEach(x => x.classList.remove('active'));
+      chip.classList.add('active');
+      renderMarkers();
+      renderList(document.getElementById('search').value);
+      updateCounter();
+    };
+    countryBox.appendChild(chip);
+  });
+
+  renderMarkers();
+  renderList('');
+  updateCounter();
+  document.getElementById('search').addEventListener('input', e => renderList(e.target.value));
+</script>
+</body>
+</html>
