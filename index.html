@@ -82,10 +82,42 @@
   .popup-card .btn-rec { background: #e94560; }
   .popup-card .btn-nav { background: #1a73e8; }
 
+  #mobileChips { display: none; }
+
   @media (max-width: 700px) {
-    #app { flex-direction: column; }
-    #sidebar { width: 100%; min-width: 0; height: 45%; order: 2; }
+    #app { flex-direction: column; height: 100dvh; }
+    #sidebar { width: 100%; min-width: 0; height: 45%; order: 2; overflow: hidden; }
     #map { height: 55%; }
+
+    /* popis skrola sam za sebe — nista vise nije odrezano */
+    #sidebar header { position: static; padding: 8px 12px; }
+    #list { overflow-y: auto; min-height: 0; }
+
+    /* veliki logo nestaje — trazilica JE forma, logo u pozadini */
+    .logo-badge { display: none; }
+    #search {
+      margin-top: 0;
+      background-color: #fff; color: #111; font-weight: 600;
+      background-image: linear-gradient(rgba(255,255,255,.82), rgba(255,255,255,.82)), url('logo.png');
+      background-repeat: no-repeat; background-position: center;
+      background-size: cover, auto 30px;
+      border: 1px solid #ccc;
+    }
+    #search::placeholder { color: #555; }
+    #sidebar .sub { margin: 6px 2px 0; }
+
+    /* chipovi zemalja: okomito na karti, ispod "Di sam ja?" */
+    header #countries { display: none; }
+    #mobileChips {
+      display: block; position: absolute; top: 130px; left: 10px; z-index: 1000;
+      max-height: calc(100% - 145px); overflow-y: auto;
+    }
+    #mobileChips #countries { display: flex; flex-direction: column; gap: 6px; margin: 0; }
+    #mobileChips .chip {
+      background: rgba(255,255,255,.92); color: #333; border: 1px solid #ddd;
+      box-shadow: 0 1px 4px rgba(0,0,0,.25); width: max-content;
+    }
+    #mobileChips .chip.active { background: #e94560; border-color: #e94560; color: #fff; }
   }
 </style>
 </head>
@@ -254,6 +286,21 @@
     };
     countryBox.appendChild(chip);
   });
+
+  // Mobitel: chipovi zemalja sele na kartu (okomito, ispod "Di sam ja?"); desktop ostaje isti
+  const mobileChips = document.createElement('div');
+  mobileChips.id = 'mobileChips';
+  document.getElementById('map').appendChild(mobileChips);
+  L.DomEvent.disableClickPropagation(mobileChips);
+  L.DomEvent.disableScrollPropagation(mobileChips);
+  const mq = window.matchMedia('(max-width: 700px)');
+  const searchEl = document.getElementById('search');
+  function placeChips() {
+    if (mq.matches) mobileChips.appendChild(countryBox);
+    else searchEl.parentNode.insertBefore(countryBox, searchEl);
+  }
+  mq.addEventListener('change', placeChips);
+  placeChips();
 
   renderMarkers();
   renderList('');
